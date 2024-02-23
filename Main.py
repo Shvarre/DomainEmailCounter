@@ -36,10 +36,10 @@ def update_table(domain, email_to_search):
 
 def export_to_html(filename, data):
     with open(filename, 'w') as f:
-        f.write('<html><head><title>Resultater</title></head><body>')
+        f.write('<html><head><title>Results</title></head><body>')
         f.write('<table border="1"><tr><th>Subpage</th><th>Email Count</th></tr>')
         for subpage, count in data:
-            f.write(f'<tr><td>{subpage}</td><td>{count}</td></tr>')
+            f.write(f'<tr><td><a href="{subpage}">{subpage}</a></td><td>{count}</td></tr>')
         f.write('</table></body></html>')
 
 def export_to_csv(filename, data):
@@ -59,24 +59,47 @@ def export_results():
             export_to_html(file_type, data)
         else:
             export_to_csv(file_type, data)
+def update_status(status):
+    status_label.config(text=status)
+
+def search_and_update_status():
+    domain = entry.get()
+    email_to_search = email_entry.get()
+    subpages = fetch_subpages(domain)
+    
+    for subpage in subpages:
+        # Update status
+        update_status(f"Searching subpage: {subpage}")
+        
+        # Update GUI
+        root.update()
+        
+        # Search
+        email_count = count_email_occurrences(subpage, email_to_search)
+        result_table.insert("", tk.END, values=(subpage, email_count))
+    
+    # Search done
+    update_status("Search done")
 
 
 # GUI setup
 root = tk.Tk()
-root.title("Webcrawler")
-root.geometry("1000x600")  # Juster vinduets størrelse
+root.title("Domain email counter")
+root.geometry("1000x600")
 
 # Domain and email entry in a top frame
 top_frame = tk.Frame(root)
 top_frame.pack(fill=tk.X)
 
 entry = tk.Entry(top_frame)
+entry.insert(0, "Enter domain here (https://www.domain.com)")  # Default value
 entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
 email_entry = tk.Entry(top_frame)
+email_entry.insert(0, "Enter email here (my@mail.com)")  # Default value
 email_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-search_button = tk.Button(top_frame, text="Søg", command=lambda: update_table(entry.get(), email_entry.get()))
+search_button = tk.Button(top_frame, text="Search", command=search_and_update_status)
 search_button.pack(side=tk.RIGHT, padx=5)
 
 # Result table
@@ -85,11 +108,18 @@ table_frame.pack(fill=tk.BOTH, expand=True)
 
 columns = ('Subpage', 'Email Count')
 result_table = ttk.Treeview(table_frame, columns=columns, show='headings')
-result_table.heading('Subpage', text='Subpage')
-result_table.heading('Email Count', text='Email Count')
+result_table.heading('Subpage', text='Subpage', anchor='w')
+result_table.heading('Email Count', text='Email Count', anchor='w')
+
+result_table.column('Subpage', width=600)  
+result_table.column('Email Count', width=100)
+
 result_table.pack(fill=tk.BOTH, expand=True)
 
-export_button = tk.Button(root, text="Eksporter Resultater", command=export_results)
+status_label = tk.Label(root, text="", bd=1, relief=tk.SUNKEN, anchor=tk.W, width=100)
+status_label.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X)
+
+export_button = tk.Button(root, text="Export", command=export_results)
 export_button.pack(pady=5)
 
 root.mainloop()
